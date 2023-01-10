@@ -1,3 +1,5 @@
+This is a fork of https://github.com/willnorris/imageproxy.
+
 # imageproxy
 
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue)](https://pkg.go.dev/willnorris.com/go/imageproxy)
@@ -338,11 +340,11 @@ in the [README](https://github.com/oreillymedia/prototype-imageproxy/blob/master
 
 ### Docker ###
 
-A docker image is available at [`ghcr.io/willnorris/imageproxy`](https://github.com/willnorris/imageproxy/pkgs/container/imageproxy).
+A docker image is available at [`registry.gitlab.com/metahkg/forks/imageproxy`](https://gitlab.com/metahkg/forks/imageproxy/container_registry/3783514).
 
 You can run it by
 ```
-docker run -p 8080:8080 ghcr.io/willnorris/imageproxy -addr 0.0.0.0:8080
+docker run -p 8080:8080 registry.gitlab.com/metahkg/forks/imageproxy -addr 0.0.0.0:8080
 ```
 
 Or in your Dockerfile:
