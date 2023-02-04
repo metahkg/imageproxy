@@ -39,3 +39,8 @@ pull:
       git push origin --all
   rules:
     - if: $PULL == "true"
+
+include:
+  - template: Auto-DevOps.gitlab-ci.yml
+    rules:
+      - if: $PULL != "true"
