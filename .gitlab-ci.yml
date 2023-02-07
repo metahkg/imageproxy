@@ -64,6 +64,8 @@ pull:
 test:
   stage: test
   allow_failure: true
+  before_script:
+    - go install github.com/polyfloyd/go-errorlint@latest
 
 build:
   stage: build
