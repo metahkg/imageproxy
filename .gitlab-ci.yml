@@ -67,9 +67,7 @@ test:
   allow_failure: true
   before_script:
     - apt-get update && apt-get install golang -y
-    - go install github.com/polyfloyd/go-errorlint@latest
-    - export PATH=$PATH:/root/go/bin
-    - alias errorlint="go-errorlint"
+    - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.51.1
 
 build:
   stage: build
