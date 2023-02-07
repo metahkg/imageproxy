@@ -63,9 +63,13 @@ pull:
 
 test:
   stage: test
+  image: gliderlabs/herokuish:latest-22
   allow_failure: true
   before_script:
+    - apt-get update && apt-get install golang -y
     - go install github.com/polyfloyd/go-errorlint@latest
+    - export PATH=$PATH:/root/go/bin
+    - alias errorlint="go-errorlint"
 
 build:
   stage: build
