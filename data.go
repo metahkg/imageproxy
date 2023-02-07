@@ -353,6 +353,11 @@ func NewRequest(r *http.Request, baseURL *url.URL) (*Request, error) {
 		return nil, URLError{"remote URL must have http or https scheme", r.URL}
 	}
 
+	urlRegexp := regexp.MustCompile(`^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]+)$`)
+	if !urlRegexp.MatchString(req.URL.String()) {
+		return nil, URLError{fmt.Sprintf("invalid remote URL: %s", path), r.URL}
+	}
+
 	// query string is always part of the remote URL
 	req.URL.RawQuery = r.URL.RawQuery
 	return req, nil
