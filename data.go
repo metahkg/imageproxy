@@ -5,6 +5,7 @@ package imageproxy
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -356,6 +357,16 @@ func NewRequest(r *http.Request, baseURL *url.URL) (*Request, error) {
 	urlRegexp := regexp.MustCompile(`^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]+)$`)
 	if !urlRegexp.MatchString(req.URL.String()) {
 		return nil, URLError{fmt.Sprintf("invalid remote URL: %s", path), r.URL}
+	}
+
+	ips, err := net.LookupIP(req.URL.Hostname())
+	if err != nil {
+		return nil, URLError{fmt.Sprintf("unable to look up IP address: %s", err), r.URL}
+	}
+	for _, ip := range ips {
+		if ip.IsPrivate() || ip.IsUnspecified() || ip.IsInterfaceLocalMulticast() || ip.IsLinkLocalMulticast() || ip.IsLinkLocalUnicast() {
+			return nil, URLError{"refusing private or local IP address", r.URL}
+		}
 	}
 
 	// query string is always part of the remote URL
