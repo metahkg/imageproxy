@@ -364,7 +364,7 @@ func NewRequest(r *http.Request, baseURL *url.URL) (*Request, error) {
 		return nil, URLError{fmt.Sprintf("unable to look up IP address: %s", err), r.URL}
 	}
 	for _, ip := range ips {
-		if ip.IsPrivate() || ip.IsUnspecified() || ip.IsInterfaceLocalMulticast() || ip.IsLinkLocalMulticast() || ip.IsLinkLocalUnicast() {
+		if ip.IsPrivate() || ip.IsLoopback() || ip.IsUnspecified() || ip.IsInterfaceLocalMulticast() || ip.IsLinkLocalMulticast() || ip.IsLinkLocalUnicast() {
 			return nil, URLError{"refusing private or local IP address", r.URL}
 		}
 	}
