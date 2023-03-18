@@ -46,6 +46,11 @@ type Proxy struct {
 	// proxied from.
 	DenyHosts []string
 
+	// AllowOrigins specifies a list of origins that images can be proxied
+	AllowOrigins []string
+	// DenyOrigins specifies a list of origins that images cannot be proxied
+	DenyOrigins []string
+
 	// Referrers, when given, requires that requests to the image
 	// proxy come from a referring host. An empty list means all
 	// hosts are allowed.
@@ -253,8 +258,10 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 
 	copyHeader(w.Header(), resp.Header, "Content-Length")
 
-	// Enable CORS for 3rd party applications
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+    // Enable CORS (for the origin header) only if origin header is set
+	if len(r.Header.Get("Origin")) > 0 {
+        w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	}
 
 	// Add a Content-Security-Policy to prevent stored-XSS attacks via SVG files
 	w.Header().Set("Content-Security-Policy", "script-src 'none'")
@@ -295,10 +302,11 @@ func copyHeader(dst, src http.Header, headerNames ...string) {
 var (
 	errReferrer         = errors.New("request does not contain an allowed referrer")
 	errDeniedHost       = errors.New("request contains a denied host")
+	errDeniedOrigin     = errors.New("request contains a denied origin")
 	errNotAllowed       = errors.New("request does not contain an allowed host or valid signature")
 	errTooManyRedirects = errors.New("too many redirects")
 
-	msgNotAllowed           = "requested URL is not allowed"
+	msgNotAllowed           = "request is not allowed"
 	msgNotAllowedInRedirect = "requested URL in redirect is not allowed"
 )
 
@@ -312,6 +320,17 @@ func (p *Proxy) allowed(r *Request) error {
 
 	if hostMatches(p.DenyHosts, r.URL) {
 		return errDeniedHost
+	}
+
+	if len(p.DenyOrigins) > 0 && originMatches(p.DenyOrigins, r.Original.Header.Get("Origin")) {
+		return errDeniedOrigin
+	}
+
+	if len(p.AllowOrigins) > 0 {
+		origin := r.Original.Header.Get("Origin")
+		if origin != "" && !originMatches(p.AllowOrigins, origin) {
+			return errDeniedOrigin
+		}
 	}
 
 	if len(p.AllowHosts) == 0 && len(p.SignatureKeys) == 0 {
@@ -364,6 +383,18 @@ func hostMatches(hosts []string, u *url.URL) bool {
 					return true
 				}
 			}
+		}
+	}
+
+	return false
+}
+
+// originMatches returns whether o matches one of origins.
+func originMatches(origins []string, o string) bool {
+	for _, origin := range origins {
+		// get origin from url
+		if o == origin {
+			return true
 		}
 	}
 

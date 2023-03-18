@@ -221,6 +221,24 @@ blocking reserved ranges like `127.0.0.0/8`, `192.168.0.0/16`, etc.
 
 If a host matches both an allowed and denied host, the request will be denied.
 
+### Allowed and Denied Origins
+
+You can set the allowed and denied origins. Note that if the origin header is not set,
+the request will be approved.
+
+Try it out by running:
+
+    imageproxy -allowOrigins https://example.com
+
+Now try running `fetch("http://localhost:8080/https://octodex.github.com/images/codercat.jpg")`
+in a browser console while visiting https://google.com, and you should see an error message.
+
+Alternately, try running:
+
+    imageproxy -denyOrigins https://example.com
+
+Now you would only get an error message when running the fetch command in https://example.com.
+
 ### Allowed Content-Type List ###
 
 You can limit what content types can be proxied by using the `contentTypes`
