@@ -51,6 +51,9 @@ type Proxy struct {
 	// DenyOrigins specifies a list of origins that images cannot be proxied
 	DenyOrigins []string
 
+	// AllowSizes specifies a list of sizes that images can be resized
+	AllowSizes []string
+
 	// Referrers, when given, requires that requests to the image
 	// proxy come from a referring host. An empty list means all
 	// hosts are allowed.
@@ -258,9 +261,9 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 
 	copyHeader(w.Header(), resp.Header, "Content-Length")
 
-    // Enable CORS (for the origin header) only if origin header is set
+	// Enable CORS (for the origin header) only if origin header is set
 	if len(r.Header.Get("Origin")) > 0 {
-        w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	}
 
 	// Add a Content-Security-Policy to prevent stored-XSS attacks via SVG files
@@ -316,6 +319,16 @@ var (
 func (p *Proxy) allowed(r *Request) error {
 	if len(p.Referrers) > 0 && !referrerMatches(p.Referrers, r.Original) {
 		return errReferrer
+	}
+
+	opt := ParseOptions(r.URL.Fragment)
+
+	widthStr := fmt.Sprintf("%.0f", opt.CropWidth)
+	heightStr := fmt.Sprintf("%.0f", opt.CropHeight)
+	widthXheight := widthStr + "x" + heightStr
+
+	if !contains(p.AllowSizes, widthXheight) {
+		return nil
 	}
 
 	if hostMatches(p.DenyHosts, r.URL) {
@@ -554,4 +567,13 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 	buf.Write(img)
 
 	return http.ReadResponse(bufio.NewReader(buf), req)
+}
+
+func contains(slice []string, s string) bool {
+	for _, v := range slice {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
