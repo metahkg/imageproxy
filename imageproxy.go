@@ -306,6 +306,7 @@ var (
 	errReferrer         = errors.New("request does not contain an allowed referrer")
 	errDeniedHost       = errors.New("request contains a denied host")
 	errDeniedOrigin     = errors.New("request contains a denied origin")
+	errDeniedSize       = errors.New("request contains a denied size")
 	errNotAllowed       = errors.New("request does not contain an allowed host or valid signature")
 	errTooManyRedirects = errors.New("too many redirects")
 
@@ -321,14 +322,17 @@ func (p *Proxy) allowed(r *Request) error {
 		return errReferrer
 	}
 
-	opt := ParseOptions(r.URL.Fragment)
-
-	widthStr := fmt.Sprintf("%.0f", opt.CropWidth)
-	heightStr := fmt.Sprintf("%.0f", opt.CropHeight)
-	widthXheight := widthStr + "x" + heightStr
-
-	if !contains(p.AllowSizes, widthXheight) {
-		return nil
+	if len(p.AllowSizes) > 0 {
+		widthStr := fmt.Sprintf("%.0f", r.Options.Width)
+		heightStr := fmt.Sprintf("%.0f", r.Options.Height)
+		// returns widthxheight if width or height is defined, otherwise returns empty string
+		var widthXheight string = ""
+		if widthStr != "" || heightStr != "" {
+			widthXheight = widthStr + "x" + heightStr
+		}
+		if widthXheight != "" && !contains(p.AllowSizes, widthXheight) {
+			return errDeniedSize
+		}
 	}
 
 	if hostMatches(p.DenyHosts, r.URL) {
