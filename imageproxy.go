@@ -54,6 +54,9 @@ type Proxy struct {
 	// AllowSizes specifies a list of sizes that images can be resized
 	AllowSizes []string
 
+	// strictly allow only requests with such options (must be exactly the same, including order)
+	AllowOptions []string
+
 	// Referrers, when given, requires that requests to the image
 	// proxy come from a referring host. An empty list means all
 	// hosts are allowed.
@@ -306,6 +309,7 @@ var (
 	errReferrer         = errors.New("request does not contain an allowed referrer")
 	errDeniedHost       = errors.New("request contains a denied host")
 	errDeniedOrigin     = errors.New("request contains a denied origin")
+	errDeniedOptions    = errors.New("option is not allowed")
 	errDeniedSize       = errors.New("request contains a denied size")
 	errNotAllowed       = errors.New("request does not contain an allowed host or valid signature")
 	errTooManyRedirects = errors.New("too many redirects")
@@ -320,6 +324,12 @@ var (
 func (p *Proxy) allowed(r *Request) error {
 	if len(p.Referrers) > 0 && !referrerMatches(p.Referrers, r.Original) {
 		return errReferrer
+	}
+
+	if len(p.AllowOptions) > 0 {
+		if !contains(p.AllowOptions, r.Options.String()) {
+			return errDeniedOptions
+		}
 	}
 
 	if len(p.AllowSizes) > 0 {

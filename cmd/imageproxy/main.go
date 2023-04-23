@@ -36,6 +36,7 @@ var allowHosts = flag.String("allowHosts", "", "comma separated list of allowed 
 var denyHosts = flag.String("denyHosts", "", "comma separated list of denied remote hosts")
 var allowOrigins = flag.String("allowOrigins", "", "comma separated list of allowed origins")
 var denyOrigins = flag.String("denyOrigins", "", "comma separated list of denied origins")
+var allowOptions = flag.String("allowOptions", "", "semi-colon separated list of allowed options")
 var allowSizes = flag.String("allowSizes", "", "comma separated list of allowed sizes")
 var referrers = flag.String("referrers", "", "comma separated list of allowed referring hosts")
 var includeReferer = flag.Bool("includeReferer", false, "include referer header in remote requests")
@@ -73,6 +74,9 @@ func main() {
 	if *denyOrigins != "" {
 		p.DenyOrigins = strings.Split(*denyOrigins, ",")
 	}
+    if *allowOptions != "" {
+        p.AllowOptions = strings.Split(*allowOptions, ";")
+    }
 	if *allowSizes != "" {
 		p.AllowSizes = strings.Split(*allowSizes, ",")
 	}
