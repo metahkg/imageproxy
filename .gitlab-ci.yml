@@ -61,17 +61,6 @@ pull:
   rules:
     - if: $PULL == "true"
 
-test:
-  stage: test
-  image: gliderlabs/herokuish:latest-22
-  allow_failure: true
-  before_script:
-    - apt-get update && apt-get install golang -y
-    - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.51.1
-  rules:
-    - if: $PULL == "true"
-      when: never
-
 build:
   stage: build
   allow_failure: true
