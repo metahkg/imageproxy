@@ -239,6 +239,28 @@ Alternately, try running:
 
 Now you would only get an error message when running the fetch command in https://example.com.
 
+### Allowed Sizes
+
+You can set the allowed sizes (whitelist). Note that this and [allowed options](#allowed-options) would be applied together if both are specified.
+
+No size specified (0x0) is always allowed.
+
+Try it out by running:
+
+    imageproxy -allowSizes 300x300,540x450
+
+### Allowed Options
+
+You can set the allowed options (whitelist). Note that this and [allowed sizes](#allowed-sizes) would be applied together if both are specified.
+
+No options is always allowed.
+
+**Note:** the allowed options are separated using a semi-colon `;` instead of a comma.
+
+Try it out by running:
+
+    imageproxy -allowOptions 300x300,q80,fit;500x450,r90
+
 ### Allowed Content-Type List ###
 
 You can limit what content types can be proxied by using the `contentTypes`
