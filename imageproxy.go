@@ -322,19 +322,23 @@ var (
 // referrer, host, and signature.  It returns an error if the request is not
 // allowed.
 func (p *Proxy) allowed(r *Request) error {
+    opt := r.Options
+
+    opt.Signature = ""
+
 	if len(p.Referrers) > 0 && !referrerMatches(p.Referrers, r.Original) {
 		return errReferrer
 	}
 
-	if len(p.AllowOptions) > 0 && r.Options.String() != "0x0" {
-		if !contains(p.AllowOptions, r.Options.String()) {
+	if len(p.AllowOptions) > 0 && opt.String() != "0x0" {
+		if !contains(p.AllowOptions, opt.String()) {
 			return errDeniedOptions
 		}
 	}
 
 	if len(p.AllowSizes) > 0 {
-		widthStr := fmt.Sprintf("%.0f", r.Options.Width)
-		heightStr := fmt.Sprintf("%.0f", r.Options.Height)
+		widthStr := fmt.Sprintf("%.0f", opt.Width)
+		heightStr := fmt.Sprintf("%.0f", opt.Height)
 		// returns widthxheight if width or height is defined, otherwise returns empty string
 		var widthXheight string = ""
 		if widthStr != "0" || heightStr != "0" {
@@ -342,6 +346,12 @@ func (p *Proxy) allowed(r *Request) error {
 		}
 		if widthXheight != "" && !contains(p.AllowSizes, widthXheight) {
 			return errDeniedSize
+		}
+	}
+
+    for _, signatureKey := range p.SignatureKeys {
+		if len(signatureKey) > 0 && validSignature(signatureKey, r) {
+			return nil
 		}
 	}
 
@@ -366,12 +376,6 @@ func (p *Proxy) allowed(r *Request) error {
 
 	if len(p.AllowHosts) > 0 && hostMatches(p.AllowHosts, r.URL) {
 		return nil
-	}
-
-	for _, signatureKey := range p.SignatureKeys {
-		if len(signatureKey) > 0 && validSignature(signatureKey, r) {
-			return nil
-		}
 	}
 
 	return errNotAllowed
