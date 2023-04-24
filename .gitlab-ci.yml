@@ -61,12 +61,13 @@ pull:
   rules:
     - if: $PULL == "true"
 
+test:
+  stage: test
+  allow_failure: true
+
 build:
   stage: build
   allow_failure: true
-  rules:
-    - if: $PULL == "true"
-      when: never
 
 container_scanning:
   stage: review
