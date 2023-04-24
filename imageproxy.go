@@ -326,7 +326,7 @@ func (p *Proxy) allowed(r *Request) error {
 		return errReferrer
 	}
 
-	if len(p.AllowOptions) > 0 {
+	if len(p.AllowOptions) > 0 && r.Options.String() != "0x0" {
 		if !contains(p.AllowOptions, r.Options.String()) {
 			return errDeniedOptions
 		}
@@ -337,7 +337,7 @@ func (p *Proxy) allowed(r *Request) error {
 		heightStr := fmt.Sprintf("%.0f", r.Options.Height)
 		// returns widthxheight if width or height is defined, otherwise returns empty string
 		var widthXheight string = ""
-		if widthStr != "" || heightStr != "" {
+		if widthStr != "0" || heightStr != "0" {
 			widthXheight = widthStr + "x" + heightStr
 		}
 		if widthXheight != "" && !contains(p.AllowSizes, widthXheight) {
