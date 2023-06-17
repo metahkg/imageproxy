@@ -46,6 +46,17 @@ type Proxy struct {
 	// proxied from.
 	DenyHosts []string
 
+	// AllowOrigins specifies a list of origins that images can be proxied
+	AllowOrigins []string
+	// DenyOrigins specifies a list of origins that images cannot be proxied
+	DenyOrigins []string
+
+	// AllowSizes specifies a list of sizes that images can be resized
+	AllowSizes []string
+
+	// strictly allow only requests with such options (must be exactly the same, including order)
+	AllowOptions []string
+
 	// Referrers, when given, requires that requests to the image
 	// proxy come from a referring host. An empty list means all
 	// hosts are allowed.
@@ -253,8 +264,10 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 
 	copyHeader(w.Header(), resp.Header, "Content-Length")
 
-	// Enable CORS for 3rd party applications
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	// Enable CORS (for the origin header) only if origin header is set
+	if len(r.Header.Get("Origin")) > 0 {
+		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	}
 
 	// Add a Content-Security-Policy to prevent stored-XSS attacks via SVG files
 	w.Header().Set("Content-Security-Policy", "script-src 'none'")
@@ -295,10 +308,13 @@ func copyHeader(dst, src http.Header, headerNames ...string) {
 var (
 	errReferrer         = errors.New("request does not contain an allowed referrer")
 	errDeniedHost       = errors.New("request contains a denied host")
+	errDeniedOrigin     = errors.New("request contains a denied origin")
+	errDeniedOptions    = errors.New("option is not allowed")
+	errDeniedSize       = errors.New("request contains a denied size")
 	errNotAllowed       = errors.New("request does not contain an allowed host or valid signature")
 	errTooManyRedirects = errors.New("too many redirects")
 
-	msgNotAllowed           = "requested URL is not allowed"
+	msgNotAllowed           = "request is not allowed"
 	msgNotAllowedInRedirect = "requested URL in redirect is not allowed"
 )
 
@@ -306,12 +322,52 @@ var (
 // referrer, host, and signature.  It returns an error if the request is not
 // allowed.
 func (p *Proxy) allowed(r *Request) error {
+    opt := r.Options
+
+    opt.Signature = ""
+
 	if len(p.Referrers) > 0 && !referrerMatches(p.Referrers, r.Original) {
 		return errReferrer
 	}
 
+	if len(p.AllowOptions) > 0 && opt.String() != "0x0" {
+		if !contains(p.AllowOptions, opt.String()) {
+			return errDeniedOptions
+		}
+	}
+
+	if len(p.AllowSizes) > 0 {
+		widthStr := fmt.Sprintf("%.0f", opt.Width)
+		heightStr := fmt.Sprintf("%.0f", opt.Height)
+		// returns widthxheight if width or height is defined, otherwise returns empty string
+		var widthXheight string = ""
+		if widthStr != "0" || heightStr != "0" {
+			widthXheight = widthStr + "x" + heightStr
+		}
+		if widthXheight != "" && !contains(p.AllowSizes, widthXheight) {
+			return errDeniedSize
+		}
+	}
+
+    for _, signatureKey := range p.SignatureKeys {
+		if len(signatureKey) > 0 && validSignature(signatureKey, r) {
+			return nil
+		}
+	}
+
 	if hostMatches(p.DenyHosts, r.URL) {
 		return errDeniedHost
+	}
+
+	if len(p.DenyOrigins) > 0 && originMatches(p.DenyOrigins, r.Original.Header.Get("Origin")) {
+		return errDeniedOrigin
+	}
+
+	if len(p.AllowOrigins) > 0 {
+		origin := r.Original.Header.Get("Origin")
+		if origin != "" && !originMatches(p.AllowOrigins, origin) {
+			return errDeniedOrigin
+		}
 	}
 
 	if len(p.AllowHosts) == 0 && len(p.SignatureKeys) == 0 {
@@ -320,12 +376,6 @@ func (p *Proxy) allowed(r *Request) error {
 
 	if len(p.AllowHosts) > 0 && hostMatches(p.AllowHosts, r.URL) {
 		return nil
-	}
-
-	for _, signatureKey := range p.SignatureKeys {
-		if len(signatureKey) > 0 && validSignature(signatureKey, r) {
-			return nil
-		}
 	}
 
 	return errNotAllowed
@@ -364,6 +414,18 @@ func hostMatches(hosts []string, u *url.URL) bool {
 					return true
 				}
 			}
+		}
+	}
+
+	return false
+}
+
+// originMatches returns whether o matches one of origins.
+func originMatches(origins []string, o string) bool {
+	for _, origin := range origins {
+		// get origin from url
+		if o == origin {
+			return true
 		}
 	}
 
@@ -523,4 +585,13 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 	buf.Write(img)
 
 	return http.ReadResponse(bufio.NewReader(buf), req)
+}
+
+func contains(slice []string, s string) bool {
+	for _, v := range slice {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
