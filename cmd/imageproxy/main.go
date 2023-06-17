@@ -34,6 +34,10 @@ const defaultMemorySize = 100
 var addr = flag.String("addr", "localhost:8080", "TCP address to listen on")
 var allowHosts = flag.String("allowHosts", "", "comma separated list of allowed remote hosts")
 var denyHosts = flag.String("denyHosts", "", "comma separated list of denied remote hosts")
+var allowOrigins = flag.String("allowOrigins", "", "comma separated list of allowed origins")
+var denyOrigins = flag.String("denyOrigins", "", "comma separated list of denied origins")
+var allowOptions = flag.String("allowOptions", "", "semi-colon separated list of allowed options")
+var allowSizes = flag.String("allowSizes", "", "comma separated list of allowed sizes")
 var referrers = flag.String("referrers", "", "comma separated list of allowed referring hosts")
 var includeReferer = flag.Bool("includeReferer", false, "include referer header in remote requests")
 var followRedirects = flag.Bool("followRedirects", true, "follow redirects")
@@ -63,6 +67,21 @@ func main() {
 	}
 	if *denyHosts != "" {
 		p.DenyHosts = strings.Split(*denyHosts, ",")
+	}
+	if *allowOrigins != "" {
+		p.AllowOrigins = strings.Split(*allowOrigins, ",")
+	}
+	if *denyOrigins != "" {
+		p.DenyOrigins = strings.Split(*denyOrigins, ",")
+	}
+    if *allowOptions != "" {
+        p.AllowOptions = strings.Split(*allowOptions, ";")
+		for i, v := range p.AllowOptions {
+			p.AllowOptions[i] = imageproxy.ParseOptions(v).String()
+		}
+    }
+	if *allowSizes != "" {
+		p.AllowSizes = strings.Split(*allowSizes, ",")
 	}
 	if *referrers != "" {
 		p.Referrers = strings.Split(*referrers, ",")
